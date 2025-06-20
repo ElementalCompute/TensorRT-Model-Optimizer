@@ -1,14 +1,14 @@
-FROM nvcr.io/nvidia/pytorch:25.03-py3
+FROM nvcr.io/nvidia/pytorch:25.05-py3
 
 ARG PIP_EXTRA_INDEX_URL="https://pypi.nvidia.com"
-ARG TRT_LLM_COMMIT=v0.19.0
+ARG TRT_LLM_COMMIT=release/0.21
 ARG REMOVE_TRT_LLM_SRC=1
-ARG CUDA_ARCH="89-real;90-real;100-real"
+ARG CUDA_ARCH="89-real;90-real;100-real;120-real"
 
 ENV PIP_EXTRA_INDEX_URL=$PIP_EXTRA_INDEX_URL \
     PIP_NO_CACHE_DIR=off \
     PIP_CONSTRAINT= \
-    TORCH_CUDA_ARCH_LIST="8.0 8.6 8.7 8.9 9.0 10.0+PTX"
+    TORCH_CUDA_ARCH_LIST="8.9 9.0 10.0 12.0+PTX"
 
 WORKDIR /workspace
 
@@ -17,6 +17,10 @@ RUN --mount=type=ssh,id=nvidia git clone https://github.com/NVIDIA/TensorRT-LLM.
     && cd tensorrt-llm \
     && git checkout ${TRT_LLM_COMMIT} \
     && git submodule update --init --recursive
+
+# Patch SM120 fused fp4
+RUN sed -i 's/TLLM_CHECK_WITH_INFO(sm_major == 10,/TLLM_CHECK_WITH_INFO(sm_major >= 10,/' \
+        cpp/tensorrt_llm/common/attentionOp.cpp
 
 # Install required dependencies
 RUN bash tensorrt-llm/docker/common/install_base.sh $(python --version 2>&1 | awk '{print $2}')
@@ -60,6 +64,14 @@ RUN find TensorRT-Model-Optimizer/examples -name "requirements.txt" | grep -v "w
         echo "Installing from $req_file"; \
         pip install -r "$req_file" || exit 1; \
     done
+
+# BNB CUDA 12.9
+RUN pip uninstall -y bitsandbytes && \
+    git clone https://github.com/bitsandbytes-foundation/bitsandbytes.git && \
+    cd bitsandbytes && \
+    cmake -S . -DCOMPUTE_BACKEND=cuda -DCOMPUTE_CAPABILITY="89;90;100;120" && \
+    make -j$(nproc) && \
+    pip install .
 
 # Allow users to run without root
 RUN chmod -R 777 /workspace
