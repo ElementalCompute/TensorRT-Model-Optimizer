@@ -16,11 +16,12 @@ WORKDIR /workspace
 RUN --mount=type=ssh,id=nvidia git clone https://github.com/NVIDIA/TensorRT-LLM.git tensorrt-llm \
     && cd tensorrt-llm \
     && git checkout ${TRT_LLM_COMMIT} \
-    && git submodule update --init --recursive
-
-# Patch SM120 fused fp4
-RUN sed -i 's/TLLM_CHECK_WITH_INFO(sm_major == 10,/TLLM_CHECK_WITH_INFO(sm_major >= 10,/' \
-        cpp/tensorrt_llm/common/attentionOp.cpp
+    && git submodule update --init --recursive \
+    # Patch SM120 fuse_fp4 guard
+    && sed -ri \
+       -e 's/!mFuseFp4Quant[[:space:]]*\|\|[[:space:]]*mSM[[:space:]]*==[[:space:]]*100/!mFuseFp4Quant || mSM >= 100/' \
+       -e 's/fuse_fp4_quant only supports SM100 devices\./fuse_fp4_quant only supports SM100+ devices./' \
+       cpp/tensorrt_llm/common/attentionOp.cpp
 
 # Install required dependencies
 RUN bash tensorrt-llm/docker/common/install_base.sh $(python --version 2>&1 | awk '{print $2}')
