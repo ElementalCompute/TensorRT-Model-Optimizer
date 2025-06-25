@@ -21,7 +21,7 @@ RUN --mount=type=ssh,id=nvidia git clone https://github.com/NVIDIA/TensorRT-LLM.
     && sed -ri \
        -e 's/!mFuseFp4Quant[[:space:]]*\|\|[[:space:]]*mSM[[:space:]]*==[[:space:]]*100/!mFuseFp4Quant || mSM >= 100/' \
        -e 's/fuse_fp4_quant only supports SM100 devices\./fuse_fp4_quant only supports SM100+ devices./' \
-       cpp/tensorrt_llm/common/attentionOp.cpp
+       cpp/tensorrt_llm/common/attentionOp.cpp \
     && sed -ri \
        -e 's/sm_ < 120/sm_ <= 120/' \
        cpp/tensorrt_llm/kernels/cutlass_kernels/moe_gemm/moe_gemm_template_dispatch.h
