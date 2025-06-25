@@ -72,7 +72,7 @@ RUN pip uninstall -y bitsandbytes && \
     cd bitsandbytes && \
     cmake -S . -DCOMPUTE_BACKEND=cuda -DCOMPUTE_CAPABILITY="89;90;100;120" && \
     make -j$(nproc) && \
-    pip install .
+    pip install . --no-deps
 
 # Allow users to run without root
 RUN chmod -R 777 /workspace
