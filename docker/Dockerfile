@@ -2,7 +2,7 @@ FROM nvcr.io/nvidia/pytorch:25.05-py3
 
 ARG PIP_EXTRA_INDEX_URL="https://pypi.nvidia.com"
 ARG TRT_LLM_COMMIT=v1.0.0rc0
-ARG REMOVE_TRT_LLM_SRC=1
+ARG REMOVE_TRT_LLM_SRC=0
 ARG CUDA_ARCH="89-real;90-real;100-real;120-real"
 
 ENV PIP_EXTRA_INDEX_URL=$PIP_EXTRA_INDEX_URL \
@@ -17,11 +17,14 @@ RUN --mount=type=ssh,id=nvidia git clone https://github.com/NVIDIA/TensorRT-LLM.
     && cd tensorrt-llm \
     && git checkout ${TRT_LLM_COMMIT} \
     && git submodule update --init --recursive \
-    # Patch SM120 fuse_fp4 guard
+    # Patch SM120 fuse_fp4 guard and moe gemm
     && sed -ri \
        -e 's/!mFuseFp4Quant[[:space:]]*\|\|[[:space:]]*mSM[[:space:]]*==[[:space:]]*100/!mFuseFp4Quant || mSM >= 100/' \
        -e 's/fuse_fp4_quant only supports SM100 devices\./fuse_fp4_quant only supports SM100+ devices./' \
        cpp/tensorrt_llm/common/attentionOp.cpp
+    && sed -ri \
+       -e 's/sm_ < 120/sm_ <= 120/' \
+       cpp/tensorrt_llm/kernels/cutlass_kernels/moe_gemm/moe_gemm_template_dispatch.h
 
 # Install required dependencies
 RUN bash tensorrt-llm/docker/common/install_base.sh $(python --version 2>&1 | awk '{print $2}')
@@ -72,7 +75,7 @@ RUN pip uninstall -y bitsandbytes && \
     cd bitsandbytes && \
     cmake -S . -DCOMPUTE_BACKEND=cuda -DCOMPUTE_CAPABILITY="89;90;100;120" && \
     make -j$(nproc) && \
-    pip install . --no-deps
+    pip install .  --no-deps
 
 # Allow users to run without root
 RUN chmod -R 777 /workspace
