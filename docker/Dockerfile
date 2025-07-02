@@ -3,7 +3,7 @@ FROM nvcr.io/nvidia/pytorch:25.06-py3
 ARG PIP_EXTRA_INDEX_URL="https://pypi.nvidia.com"
 ARG TRT_LLM_COMMIT=v1.0.0rc0
 ARG REMOVE_TRT_LLM_SRC=0
-ARG CUDA_ARCH="89-real;90-real;100-real;120-real"
+ARG CUDA_ARCH="89-real;100-real;120-real"
 
 ENV PIP_EXTRA_INDEX_URL=$PIP_EXTRA_INDEX_URL \
     PIP_NO_CACHE_DIR=off \
