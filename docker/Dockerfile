@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:25.05-py3
+FROM nvcr.io/nvidia/pytorch:25.06-py3
 
 ARG PIP_EXTRA_INDEX_URL="https://pypi.nvidia.com"
 ARG TRT_LLM_COMMIT=v1.0.0rc0
